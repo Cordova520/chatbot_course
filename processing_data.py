@@ -9,6 +9,7 @@ import os
 import unicodedata
 import codecs
 import itertools
+import processing_words as pw
 from processing_words import Vocabulary
 
 CUDA = torch.cuda.is_available()
@@ -133,7 +134,7 @@ print("After filtering, there are {} pairs/conversations".format(len(pairs)))
 #Loop through each pair of and add the question and reply sentence to the vocabulary
 for pair in pairs:
     voc.addSentence(pair[0])
-    voc.addSentence(pair[0])
+    voc.addSentence(pair[1])
 print("Counted words:", voc.num_words)
 for pair in pairs[:10]:
     print(pair)
@@ -148,7 +149,7 @@ def trimRareWords(voc, pairs, MIN_COUNT):
         input_sentence = pair[0]
         output_sentence = pair[1]
         keep_input = True
-        keep_output =True
+        keep_output = True
         #Check input sentence
         for word in input_sentence.split(' '):
             if word not in voc.word2index:
@@ -162,10 +163,54 @@ def trimRareWords(voc, pairs, MIN_COUNT):
 
         #Only keep pairs that do not contain trimmed word(s) in their input or output sentence
         if keep_input and keep_output:
-            keep_pairs.append(pairs)
+            keep_pairs.append(pair)
 
     print("Trimmed from {} pairs to {}, {:.4f} of total".format(len(pairs), len(keep_pairs), len(keep_pairs) / len(pairs)))
     return keep_pairs
 
 #Trim voc and pairs
 pairs = trimRareWords(voc, pairs, MIN_COUNT)
+print(pairs[1][0])
+
+
+def indexesFromSentence(voc, sentence):
+    return [voc.word2index[word] for word in sentence.split(' ')] + [pw.EOS_token]
+
+#Test the function
+print(indexesFromSentence(voc, pairs[1][0]))
+
+#Define same samples for testing
+inp = []
+out = []
+for pair in pairs[:10]:
+    inp.append(pair[0])
+    out.append(pair[1])
+print(inp)
+print(len(inp))
+indexes = [indexesFromSentence(voc, sentence) for sentence in inp]
+print(indexes)
+
+def zeroPadding(l, fillvalue = 0):
+    return list(itertools.zip_longest(*l, fillvalue=fillvalue))
+
+leng = [len(ind) for ind in indexes]
+print(max(leng))
+
+#Testing the Function
+test_result = zeroPadding(indexes)
+print(len(test_result)) #The max length is now the number of rows
+print(test_result)
+
+def binaryMatrix(l, value=0):
+    m = []
+    for i, seq in enumerate(l):
+        m.append([])
+        for token in seq:
+            if token == pw.PAD_token:
+                m[i].append(0)
+            else:
+                m[i].append(1)
+    return m
+
+binar_result = binaryMatrix(test_result)
+print(binar_result)
