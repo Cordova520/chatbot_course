@@ -212,5 +212,50 @@ def binaryMatrix(l, value=0):
                 m[i].append(1)
     return m
 
-binar_result = binaryMatrix(test_result)
-print(binar_result)
+binary_result = binaryMatrix(test_result)
+print(binary_result)
+
+#Returns padded input sequence tensor and as well as a tensor of lengths for each of of the sequences in the batch
+def inputVar(l, voc):
+    indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
+    lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
+    padList = zeroPadding(indexes_batch)
+    padVAr = torch.LongTensor(padList)
+    return padVAr, lengths
+
+#Returns padded target sequence tensor, padding mask, and max target length
+def outputVar(l, voc):
+    indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
+    max_target_len = max([len(indexes) for indexes in indexes_batch])
+    padList = zeroPadding(indexes_batch)
+    mask = binaryMatrix(padList)
+    mask = torch.ByteTensor(mask)
+    padVar = torch.LongTensor(padList)
+    return padVar, mask, max_target_len
+
+#Returns all items for a given batch of pairs
+def batch2TrainData(voc, pair_batch):
+    #Sort the questions in descending length
+    pair_batch.sort(key=lambda x: len(x[0].split(" ")), reverse=True)
+    input_batch, output_batch = [], []
+    for pair in pair_batch:
+        input_batch.append(pair[0])
+        output_batch.append(pair[1])
+    inp, lengths = inputVar(input_batch, voc)
+    #assert len(inp) == Lengths[0]
+    output, mask, max_target_len = outputVar(output_batch, voc)
+    return inp, lengths, output, mask, max_target_len
+
+#Example for validation
+small_batch_size = 5
+batches = batch2TrainData(voc, [random.choice(pairs) for _ in range(small_batch_size)])
+input_variable, lengths, target_variable, mask, max_target_len = batches
+
+print("input_variable:")
+print(input_variable)
+print("lengths: ", lengths)
+print("Target_variable:")
+print(target_variable)
+print("mask:")
+print(mask)
+print("max_target_len:", max_target_len)
